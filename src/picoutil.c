@@ -4,42 +4,47 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-// Check if a file exists using stat()
 int file_exists(const char *filename) {
     struct stat buffer;
     return (stat(filename, &buffer) == 0);
 }
 
-int flash(char* filename) {
+int flash(char* interface_file, char *filename) {
     char command[512];
     // Construct the command
-    snprintf(command, sizeof(command), "sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c \"adapter speed 5000\" -c \"program %s verify reset exit\"", filename);
+    snprintf(command, sizeof(command),
+             "sudo openocd -f %s -f target/rp2040.cfg -c \"adapter speed 5000\" -c \"program %s verify reset exit\"",
+             interface_file, filename);
 
-    // Execute the command.
     return system(command);
 }
 
-int reset() {
-    const char command[] = "openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c \"init; reset; exit\"";
+int reset(char* interface_file) {
+    char command[512];
+    // Construct the command
+    snprintf(command, sizeof(command), "openocd -f %s -f target/rp2040.cfg -c \"init; reset; exit\"", interface_file);
     return system(command);
 }
 
 void usage() {
-    printf("Usage: picoutil [-r] [-f firmware.uf2]\n");
+    printf("Usage: picoutil [-r] [-f firmware.uf2] [-i interface.cfg]\n");
 }
 
 int main(int argc, char *argv[]) {
     int opt;
     char *firmware_file = NULL;
+    // Default interface configuration file.
+    char *interface_file = "interface/cmsis-dap.cfg";
     int reset_flag = 0;
     
+    // Check if there is at least one argument.
     if (argc < 2) {
         usage();
         return 0;
     }
 
     // Parse command-line options.
-    while ((opt = getopt(argc, argv, "f:rh")) != -1) {
+    while ((opt = getopt(argc, argv, "f:rhi:")) != -1) {
         switch (opt) {
             case 'f':
                 firmware_file = optarg;
@@ -47,9 +52,12 @@ int main(int argc, char *argv[]) {
             case 'r':
                 reset_flag = 1;
                 break;
+            case 'i':
+                interface_file = optarg;
+                break;
             case 'h':
                 usage();
-                break;
+                return 0;
             default:
                 usage();
                 return 1;
@@ -58,19 +66,29 @@ int main(int argc, char *argv[]) {
 
     // Determine what command to execute.
     if (firmware_file) {
-        // If the firmware file is provided, verify that it exists.
+        // Check that the firmware file exists.
         if (!file_exists(firmware_file)) {
             fprintf(stderr, "Error: File '%s' not found.\n", firmware_file);
             return 1;
         }
-        if (flash(firmware_file)) {
+        // Check that the interface configuration file exists.
+        if (!file_exists(interface_file)) {
+            fprintf(stderr, "Error: Interface config file '%s' not found.\n", interface_file);
+            return 1;
+        }
+        if (flash(interface_file, firmware_file)) {
             fprintf(stderr, "Error: Failed to execute flash command.\n");
             return 1;
         }
     }
 
     if (reset_flag) {
-        if(reset()) {
+        // Check that the interface configuration file exists.
+        if (!file_exists(interface_file)) {
+            fprintf(stderr, "Error: Interface config file '%s' not found.\n", interface_file);
+            return 1;
+        }
+        if (reset(interface_file)) {
             fprintf(stderr, "Error: Failed to execute reboot command.\n");
             return 1;
         }
@@ -78,3 +96,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
