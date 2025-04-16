@@ -34,7 +34,10 @@ int main(int argc, char *argv[]) {
     int opt;
     char *firmware_file = NULL;
     // Default interface configuration file.
-    char *interface_file = "interface/cmsis-dap.cfg";
+    char *interface_file = getenv("DEFAULT_OCD_INTEFACE");
+    if (interface_file == NULL) {
+	interface_file = "interface/cmsis-dap.cfg";
+    }
     int reset_flag = 0;
     
     // Check if there is at least one argument.
