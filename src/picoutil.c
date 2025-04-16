@@ -74,11 +74,6 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error: File '%s' not found.\n", firmware_file);
             return 1;
         }
-        // Check that the interface configuration file exists.
-        if (!file_exists(interface_file)) {
-            fprintf(stderr, "Error: Interface config file '%s' not found.\n", interface_file);
-            return 1;
-        }
         if (flash(interface_file, firmware_file)) {
             fprintf(stderr, "Error: Failed to execute flash command.\n");
             return 1;
@@ -86,11 +81,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (reset_flag) {
-        // Check that the interface configuration file exists.
-        if (!file_exists(interface_file)) {
-            fprintf(stderr, "Error: Interface config file '%s' not found.\n", interface_file);
-            return 1;
-        }
         if (reset(interface_file)) {
             fprintf(stderr, "Error: Failed to execute reboot command.\n");
             return 1;
